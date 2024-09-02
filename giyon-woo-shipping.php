@@ -85,7 +85,30 @@ add_action('woocommerce_shipping_init', function () {
             public function calculate_shipping($package = array())
             {
                 // $package->destination->state JP27 urut dropdown
-                $this->title   = 'AMM';
+                $giyon_product_ids = [];
+                foreach ($package['contents'] as $content) $giyon_product_ids[] = $content['product_id'];
+                $giyon_product_ids = implode(',', $giyon_product_ids);
+
+                global $wpdb;
+                $giyon_shipping_classes = [];
+                foreach (
+                    $wpdb->get_results("
+                    SELECT
+                        {$wpdb->prefix}terms.name
+                    FROM {$wpdb->prefix}posts
+                    LEFT JOIN {$wpdb->prefix}term_relationships ON {$wpdb->prefix}posts.ID = {$wpdb->prefix}term_relationships.object_id
+                    LEFT JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}term_relationships.term_taxonomy_id = {$wpdb->prefix}term_taxonomy.term_taxonomy_id
+                    LEFT JOIN {$wpdb->prefix}terms ON {$wpdb->prefix}terms.term_id = {$wpdb->prefix}term_taxonomy.term_id
+                    WHERE {$wpdb->prefix}posts.ID IN ({$giyon_product_ids})
+                    AND {$wpdb->prefix}term_taxonomy.taxonomy = 'product_shipping_class'
+                ") as $classes
+                ) $giyon_shipping_classes[] = $classes->name;
+
+                if (in_array('BOX', $giyon_shipping_classes)) $this->title   = 'BOX';
+                else if (0 < count(array_diff(['LPP', 'LPPF'], $giyon_shipping_classes))) $this->title   = 'Letter Pack Plus';
+                else if (0 < count(array_diff(['LPL', 'LPLF'], $giyon_shipping_classes))) $this->title   = 'Letter Pack Light';
+                else $this->title = 'Smart Letter';
+
                 $this->add_rate(array(
                     'id'    => $this->id,
                     'label' => $this->title,
