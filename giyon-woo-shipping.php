@@ -105,8 +105,8 @@ add_action('woocommerce_shipping_init', function () {
                 ) $giyon_shipping_classes[] = $classes->name;
 
                 if (in_array('BOX', $giyon_shipping_classes)) $this->title   = 'BOX';
-                else if (0 < count(array_diff(['LPP', 'LPPF'], $giyon_shipping_classes))) $this->title   = 'Letter Pack Plus';
-                else if (0 < count(array_diff(['LPL', 'LPLF'], $giyon_shipping_classes))) $this->title   = 'Letter Pack Light';
+                else if (0 < count(array_intersect(['LPP', 'LPPF'], $giyon_shipping_classes))) $this->title   = 'Letter Pack Plus';
+                else if (0 < count(array_intersect(['LPL', 'LPLF'], $giyon_shipping_classes))) $this->title   = 'Letter Pack Light';
                 else $this->title = 'Smart Letter';
 
                 $this->add_rate(array(
