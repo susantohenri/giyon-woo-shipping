@@ -14,6 +14,19 @@
  *
  */
 
+define('GIYON_VOLUME_TO_SHIPPING_CLASS', [
+    'SL' => 400,
+    'LPL' => 800,
+    'LPP' => 1200,
+    'BOX 60' => 5000,
+    'BOX 80' => 11900,
+    'BOX 100' => 24300,
+    'BOX 120' => 49500,
+    'BOX 140' => 80500,
+    'BOX 160' => 122400,
+    'BOX 170' => 153600
+]);
+
 add_action('woocommerce_shipping_init', function () {
     if (! class_exists('Giyon_Shipping_Method')) {
         class Giyon_Shipping_Method extends WC_Shipping_Method
@@ -41,7 +54,7 @@ add_action('woocommerce_shipping_init', function () {
                 $this->init_form_fields();
                 $this->init_instance_settings();
                 $this->enabled = $this->get_option('enabled');
-                $this->title   = __('Giyon Shipping', 'text-domain');
+                return __('Giyon Shipping', 'text-domain');
                 add_action('woocommerce_update_options_shipping_' . $this->id, array($this, 'process_admin_options'));
             }
 
@@ -85,34 +98,27 @@ add_action('woocommerce_shipping_init', function () {
             public function calculate_shipping($package = array())
             {
                 // $package->destination->state JP27 urut dropdown
-                $giyon_product_ids = [];
-                foreach ($package['contents'] as $content) $giyon_product_ids[] = $content['product_id'];
-                $giyon_product_ids = implode(',', $giyon_product_ids);
+                $giyon_product_ids = giyon_cart_to_product_ids($package);
+                $shipping_classes = array_map(function ($product_id) {
+                    return giyon_product_id_to_shipping_class($product_id);
+                }, $giyon_product_ids);
+                $shipping_class = giyon_shipping_classes_to_shipping_class($shipping_classes);
 
-                global $wpdb;
-                $giyon_shipping_classes = [];
-                foreach (
-                    $wpdb->get_results("
-                    SELECT
-                        {$wpdb->prefix}terms.name
-                    FROM {$wpdb->prefix}posts
-                    LEFT JOIN {$wpdb->prefix}term_relationships ON {$wpdb->prefix}posts.ID = {$wpdb->prefix}term_relationships.object_id
-                    LEFT JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}term_relationships.term_taxonomy_id = {$wpdb->prefix}term_taxonomy.term_taxonomy_id
-                    LEFT JOIN {$wpdb->prefix}terms ON {$wpdb->prefix}terms.term_id = {$wpdb->prefix}term_taxonomy.term_id
-                    WHERE {$wpdb->prefix}posts.ID IN ({$giyon_product_ids})
-                    AND {$wpdb->prefix}term_taxonomy.taxonomy = 'product_shipping_class'
-                ") as $classes
-                ) $giyon_shipping_classes[] = $classes->name;
+                if (giyon_any_free_shipping_class($shipping_classes)) $cost = 0;
+                else {
+                    $cost = 0;
+                    $total_volume = 0;
+                    foreach ($giyon_product_ids as $gpid) {
+                        $total_volume += giyon_product_id_to_volume($gpid);
+                    }
+                }
 
-                if (in_array('BOX', $giyon_shipping_classes)) $this->title   = 'BOX';
-                else if (0 < count(array_intersect(['LPP', 'LPPF'], $giyon_shipping_classes))) $this->title   = 'Letter Pack Plus';
-                else if (0 < count(array_intersect(['LPL', 'LPLF'], $giyon_shipping_classes))) $this->title   = 'Letter Pack Light';
-                else $this->title = 'Smart Letter';
-
+                $this->title = $shipping_class;
+                if ('BOX' == $this->title) $this->title = 'Yu Pakku';
                 $this->add_rate(array(
                     'id'    => $this->id,
                     'label' => $this->title,
-                    'cost'  => 123,
+                    'cost'  => $cost,
                 ));
             }
         }
@@ -123,3 +129,65 @@ add_filter('woocommerce_shipping_methods', function ($methods) {
     $methods['giyon_shipping'] = 'Giyon_Shipping_Method';
     return $methods;
 });
+
+function giyon_cart_to_product_ids($package)
+{
+    return array_values(array_map(function ($content) {
+        return $content['product_id'];
+    }, $package['contents']));
+}
+
+function giyon_product_id_to_shipping_class($product_id)
+{
+    global $wpdb;
+    return $wpdb->get_var("
+        SELECT
+            {$wpdb->prefix}terms.name
+        FROM {$wpdb->prefix}posts
+        LEFT JOIN {$wpdb->prefix}term_relationships ON {$wpdb->prefix}posts.ID = {$wpdb->prefix}term_relationships.object_id
+        LEFT JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}term_relationships.term_taxonomy_id = {$wpdb->prefix}term_taxonomy.term_taxonomy_id
+        LEFT JOIN {$wpdb->prefix}terms ON {$wpdb->prefix}terms.term_id = {$wpdb->prefix}term_taxonomy.term_id
+        WHERE {$wpdb->prefix}posts.ID = {$product_id}
+        AND {$wpdb->prefix}term_taxonomy.taxonomy = 'product_shipping_class'
+    ");
+}
+
+function giyon_shipping_classes_to_shipping_class($shipping_classes)
+{
+    if (in_array('BOX', $shipping_classes)) return 'BOX';
+    else if (0 < count(array_intersect(['LPP', 'LPPF'], $shipping_classes))) return 'Letter Pack Plus';
+    else if (0 < count(array_intersect(['LPL', 'LPLF'], $shipping_classes))) return 'Letter Pack Light';
+    else return 'Smart Letter';
+}
+
+function giyon_any_free_shipping_class($shipping_classes)
+{
+    return 0 < count(array_values(array_filter($shipping_classes, function ($shipping_class) {
+        return -1 < strpos($shipping_class, 'F');
+    })));
+}
+
+function giyon_product_id_to_volume($product_id)
+{
+    global $wpdb;
+    $volume = 1;
+    foreach (
+        $wpdb->get_results("
+        SELECT meta_value
+        FROM {$wpdb->prefix}postmeta
+        WHERE post_id = {$product_id}
+        AND meta_key IN ('_length', '_width', '_height')
+    ") as $dimension
+    ) $volume *= $dimension->meta_value;
+    return $volume;
+}
+
+function giyon_volume_to_shipping_class($volume)
+{
+    $shipping_class = '';
+    $limits = array_reverse(GIYON_VOLUME_TO_SHIPPING_CLASS);
+    foreach ($limits as $class => $value) {
+        if ($volume <= $value) $shipping_class = $class;
+    }
+    return $shipping_class;
+}
