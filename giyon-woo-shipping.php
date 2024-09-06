@@ -26,6 +26,7 @@ define('GIYON_VOLUME_TO_SHIPPING_CLASS', [
     'BOX 160' => 122400,
     'BOX 170' => 153600
 ]);
+define('GIYON_CSV_ONGKIR', plugin_dir_path(__FILE__) . 'ongkir.csv');
 
 add_action('woocommerce_shipping_init', function () {
     if (! class_exists('Giyon_Shipping_Method')) {
@@ -97,28 +98,34 @@ add_action('woocommerce_shipping_init', function () {
 
             public function calculate_shipping($package = array())
             {
-                // $package->destination->state JP27 urut dropdown
-                $giyon_product_ids = giyon_cart_to_product_ids($package);
-                $shipping_classes = array_map(function ($product_id) {
+                $giyon = [
+                    'prefecture' => giyon_cart_to_prefecture($package),
+                    'product_ids' => giyon_cart_to_product_ids($package),
+                    'shipping_classes' => [],
+                    'shipping_class_by_product' => '',
+                    'volume' => 0,
+                    'shipping_class_by_volume' => '',
+                    'cost' => 0
+                ];
+                $giyon['shipping_classes'] = array_map(function ($product_id) {
                     return giyon_product_id_to_shipping_class($product_id);
-                }, $giyon_product_ids);
-                $shipping_class = giyon_shipping_classes_to_shipping_class($shipping_classes);
+                }, $giyon['product_ids']);
+                $giyon['shipping_class_by_product'] = giyon_shipping_classes_to_shipping_class($giyon['shipping_classes']);
 
-                if (giyon_any_free_shipping_class($shipping_classes)) $cost = 0;
+                if (giyon_any_free_shipping_class($giyon['shipping_classes'])) $giyon['cost'] = 0;
                 else {
-                    $cost = 0;
-                    $total_volume = 0;
-                    foreach ($giyon_product_ids as $gpid) {
-                        $total_volume += giyon_product_id_to_volume($gpid);
-                    }
+                    $giyon['volume'] = giyon_cart_to_volume($package);
+                    $giyon['shipping_class_by_volume'] = giyon_volume_to_shipping_class($giyon['volume']);
+                    $giyon['cost'] = giyon_csv_to_cost($giyon['prefecture'], $giyon['shipping_class_by_volume']);
                 }
 
-                $this->title = $shipping_class;
+                $this->title = $giyon['shipping_class_by_product'];
                 if ('BOX' == $this->title) $this->title = 'Yu Pakku';
+                // echo json_encode($giyon, JSON_PRETTY_PRINT) . '<br>';
                 $this->add_rate(array(
                     'id'    => $this->id,
                     'label' => $this->title,
-                    'cost'  => $cost,
+                    'cost'  => $giyon['cost']
                 ));
             }
         }
@@ -135,6 +142,25 @@ function giyon_cart_to_product_ids($package)
     return array_values(array_map(function ($content) {
         return $content['product_id'];
     }, $package['contents']));
+}
+
+function giyon_cart_to_prefecture($package)
+{
+    $country_code = 'JP';
+    $state_code = $package['destination']['state'];
+    $states = WC()->countries->get_states($country_code);
+    return $states[$state_code];
+}
+
+function giyon_cart_to_volume($package)
+{
+    $volume = 0;
+    foreach ($package['contents'] as $key => $content) {
+        $product_id = $content['product_id'];
+        $quantity = $content['quantity'];
+        $volume += giyon_product_id_to_volume($product_id) * $quantity;
+    }
+    return $volume;
 }
 
 function giyon_product_id_to_shipping_class($product_id)
@@ -190,4 +216,25 @@ function giyon_volume_to_shipping_class($volume)
         if ($volume <= $value) $shipping_class = $class;
     }
     return $shipping_class;
+}
+
+function giyon_read_csv()
+{
+    $csv = [];
+    $file = fopen(GIYON_CSV_ONGKIR, 'r');
+    while (!feof($file)) $csv[] = fgetcsv($file);
+    fclose($file);
+    return $csv;
+}
+
+function giyon_csv_to_cost($prefecture, $shipping_class_by_volume)
+{
+    $rows = giyon_read_csv();
+    $col_num = array_search($shipping_class_by_volume, $rows[0]);
+    $row = array_values(array_filter($rows, function ($cols) use ($prefecture) {
+        return $cols[0] == $prefecture;
+    }))[0];
+    $cost = $row[$col_num];
+    $cost = 'Free' == $cost ? 0 : $cost;
+    return (float)$cost;
 }
