@@ -109,18 +109,25 @@ add_action('woocommerce_shipping_init', function () {
                 ];
 
                 $giyon_cart['shipping_class_by_products'] = giyon_products_to_shipping_class($giyon_cart['products']);
-                if (!giyon_is_free_shipping_cost($giyon_cart['shipping_class_by_products'], $giyon_cart['products'])) {
-                    foreach ($giyon_cart['products'] as $gprod) $giyon_cart['volume'] += $gprod['quantity'] * $gprod['volume'];
-                    $giyon_cart['shipping_class_by_volume'] = giyon_volume_to_shipping_class($giyon_cart['volume']);
+                foreach ($giyon_cart['products'] as $gprod) $giyon_cart['volume'] += $gprod['quantity'] * $gprod['volume'];
+                $giyon_cart['shipping_class_by_volume'] = giyon_volume_to_shipping_class($giyon_cart['volume']);
 
-                    $giyon_cart['shipping_cost'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_volume']);
-                    if (false === strpos($giyon_cart['shipping_class_by_products'], $giyon_cart['shipping_class_by_volume'])) {
-                        $substractor = 'Smart Letter' == $giyon_cart['shipping_class_by_products'] ?
-                            GIYON_SMART_LETTER_SUBSTRACTOR :
-                            giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_products']);
+                // base rule
+                $giyon_cart['shipping_cost'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_volume']);
 
-                        $giyon_cart['shipping_cost'] -=  $substractor;
-                    }
+                // special rules
+                switch ($giyon_cart['shipping_class_by_products']) {
+                    case 'Smart Letter':
+                        if ('Smart Letter' != $giyon_cart['shipping_class_by_volume']) {
+                            $giyon_cart['shipping_cost'] -= GIYON_SMART_LETTER_SUBSTRACTOR;
+                        }
+                        break;
+                    case 'Letter Pack Light':
+                        break;
+                    case 'Letter Pack Plus':
+                        break;
+                    case 'Box':
+                        break;
                 }
 
                 $this->title = $giyon_cart['shipping_class_by_products'];
@@ -180,17 +187,10 @@ function giyon_product_id_to_shipping_class($product_id)
 function giyon_products_to_shipping_class($products)
 {
     $shipping_classes = giyon_products_to_shipping_classes($products);
-    if (in_array('BOX', $shipping_classes)) return 'BOX';
+    if (in_array('BOX', $shipping_classes)) return 'Box';
     else if (0 < count(array_intersect(['LPP', 'LPPF'], $shipping_classes))) return 'Letter Pack Plus';
     else if (0 < count(array_intersect(['LPL', 'LPLF'], $shipping_classes))) return 'Letter Pack Light';
     else return 'Smart Letter';
-}
-
-function giyon_is_free_shipping_cost($cart_shipping_class, $products)
-{
-    if ('Letter Pack Light' == $cart_shipping_class) return giyon_products_contains_shipping_class($products, 'LPLF');
-    else if ('Letter Pack Plus' == $cart_shipping_class) return giyon_products_contains_shipping_class($products, 'LPPF');
-    else return false;
 }
 
 function giyon_products_contains_shipping_class($products, $shipping_class)
