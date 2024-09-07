@@ -27,7 +27,7 @@ define('GIYON_SHIPPING_CLASS_VOLUME_LIMIT', [
     'Box 170' => 153600
 ]);
 define('GIYON_CSV_ONGKIR', plugin_dir_path(__FILE__) . 'ongkir.csv');
-define('GIYON_SMART_LETTER_SUBSTRACTOR', 210);
+define('GIYON_DEBUG_MODE', true);
 
 add_action('woocommerce_shipping_init', function () {
     if (! class_exists('Giyon_Shipping_Method')) {
@@ -105,34 +105,81 @@ add_action('woocommerce_shipping_init', function () {
                     'volume' => 0,
                     'shipping_class_by_volume' => '',
                     'shipping_class_by_products' => '',
+                    'shipping_class_to_show' => '',
+                    'is_over_dimension' => false,
+                    'shipping_cost_by_volume_shipping_class' => '',
+                    'shipping_cost_by_products_shipping_class' => '',
                     'shipping_cost' => 0
                 ];
 
                 $giyon_cart['shipping_class_by_products'] = giyon_products_to_shipping_class($giyon_cart['products']);
+                $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_products'];
+                if ('Box' == $giyon_cart['shipping_class_to_show']) $giyon_cart['shipping_class_to_show'] = 'Yu Pakku';
+
                 foreach ($giyon_cart['products'] as $gprod) $giyon_cart['volume'] += $gprod['quantity'] * $gprod['volume'];
                 $giyon_cart['shipping_class_by_volume'] = giyon_volume_to_shipping_class($giyon_cart['volume']);
+                $limits = GIYON_SHIPPING_CLASS_VOLUME_LIMIT;
+                $giyon_cart['is_over_dimension'] = $giyon_cart['volume'] > $limits[$giyon_cart['shipping_class_by_products']];
 
                 // base rule
-                $giyon_cart['shipping_cost'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_volume']);
+                $giyon_cart['shipping_cost_by_volume_shipping_class'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_volume']);
+                $giyon_cart['shipping_cost_by_products_shipping_class'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_products']);
+                $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_products_shipping_class'];
 
                 // special rules
                 switch ($giyon_cart['shipping_class_by_products']) {
                     case 'Smart Letter':
-                        if ('Smart Letter' != $giyon_cart['shipping_class_by_volume']) {
-                            $giyon_cart['shipping_cost'] -= GIYON_SMART_LETTER_SUBSTRACTOR;
+                        if ($giyon_cart['is_over_dimension']) {
+                            // - Apabila volume melebihi volume Smart Letter (400 cm³), maka akan menggunakan packaging di atasnya dengan tarif selisih antara ongkir packaging yang dipakai (tarif yg dipakai dikurangi 210 yen).
+                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - 210;
                         }
                         break;
                     case 'Letter Pack Light':
+                        $has_lplf = giyon_products_contains_shipping_class($giyon_cart['products'], 'LPLF');
+                        if ($giyon_cart['is_over_dimension'] && $has_lplf) {
+                            // - Apabila volume melebihi volume Letter Pack Light (800 cm³), dengan kombinasi shipping class LPLF, maka akan menggunakan packaging di atasnya dengan tarif selisih antara ongkir packaging yang dipakai (tarif yg dipakai dikurangi 430 yen).
+                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - $giyon_cart['shipping_cost_by_products_shipping_class'];
+                        } else if ($has_lplf) {
+                            // - Apabila ada kombinasi dengan LPLF maka tidak dikenakan ongkir (free ongkir).
+                            $giyon_cart['shipping_cost'] = 0;
+                        } else if ($giyon_cart['is_over_dimension']) {
+                            // - Apabila volume melebihi volume Letter Pack Light (800 cm³), maka akan menggunakan packaging dan tarif packaging di atasnya
+                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
+                            $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_volume'];
+                        }
                         break;
                     case 'Letter Pack Plus':
+                        $has_lplf = giyon_products_contains_shipping_class($giyon_cart['products'], 'LPLF');
+                        $has_lppf = !giyon_products_contains_shipping_class($giyon_cart['products'], 'LPPF');
+                        $has_no_lppf = !$has_lppf;
+                        if ($has_lplf && $has_no_lppf) {
+                            // - Apabila ada kombinasi dengan "LPLF"  tanpa LPPF maka tidak dikenakan ongkir selisih dari Letter Pack Plus dikurangi Letter Pack Light (600 - 430 = 170)
+                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - $giyon_cart['shipping_cost_by_products_shipping_class'];
+                        } else if ($has_lppf) {
+                            // - Apabila ada kombinasi dengan "LPPF" maka tidak dikenakan ongkir (free ongkir).
+                            $giyon_cart['shipping_cost'] = 0;
+                        } else if ($giyon_cart['is_over_dimension'] && $has_lplf && $has_no_lppf) {
+                            // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), dengan kombinasi shipping class "LPLF" tanpa "LPPF", maka akan menggunakan packaging BOX dengan tarif selisih antara ongkir packaging BOX dikurangi 430 yen.
+                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - giyon_csv_to_cost($giyon_cart['prefecture'], 'Letter Pack Light');
+                        } else if ($giyon_cart['is_over_dimension'] && $has_lppf) {
+                            // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), dengan kombinasi shipping class "LPPF", maka akan menggunakan packaging BOX dengan tarif selisih antara ongkir packaging BOX dikurangi 600 yen.
+                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - $giyon_cart['shipping_cost_by_products_shipping_class'];
+                        } else if ($giyon_cart['is_over_dimension']) {
+                            // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), maka akan menggunakan packaging dan tarif packaging di atasnya (BOX) sesuai wilayah
+                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
+                        }
                         break;
                     case 'Box':
                         break;
                 }
 
-                $this->title = $giyon_cart['shipping_class_by_products'];
-                if ('BOX' == $this->title) $this->title = 'Yu Pakku';
-                // echo json_encode($giyon_cart, JSON_PRETTY_PRINT) . '<br>';
+                // debugging
+                if (isset($_POST['giyon_debug'])) {
+                    unset($_POST['giyon_debug']);
+                    echo json_encode($giyon_cart, JSON_PRETTY_PRINT) . '<br>';
+                }
+
+                $this->title = $giyon_cart['shipping_class_to_show'];
                 $this->add_rate(array(
                     'id'    => $this->id,
                     'label' => $this->title,
@@ -142,6 +189,12 @@ add_action('woocommerce_shipping_init', function () {
         }
     }
 });
+
+if (GIYON_DEBUG_MODE) {
+    add_action('wp_footer', function () {
+        echo '<form method="POST"><button name="giyon_debug">giyon debug</button></form>';
+    });
+}
 
 add_filter('woocommerce_shipping_methods', function ($methods) {
     $methods['giyon_shipping'] = 'Giyon_Shipping_Method';
