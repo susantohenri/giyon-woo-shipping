@@ -119,7 +119,7 @@ add_action('woocommerce_shipping_init', function () {
                 foreach ($giyon_cart['products'] as $gprod) $giyon_cart['volume'] += $gprod['quantity'] * $gprod['volume'];
                 $giyon_cart['shipping_class_by_volume'] = giyon_volume_to_shipping_class($giyon_cart['volume']);
                 $limits = GIYON_SHIPPING_CLASS_VOLUME_LIMIT;
-                $giyon_cart['is_over_dimension'] = $giyon_cart['volume'] > $limits[$giyon_cart['shipping_class_by_products']];
+                if ('Box' != $giyon_cart['shipping_class_by_products']) $giyon_cart['is_over_dimension'] = $giyon_cart['volume'] > $limits[$giyon_cart['shipping_class_by_products']];
 
                 // base rule
                 $giyon_cart['shipping_cost_by_volume_shipping_class'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_volume']);
@@ -170,6 +170,7 @@ add_action('woocommerce_shipping_init', function () {
                         }
                         break;
                     case 'Box':
+                        $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
                         break;
                 }
 
