@@ -26,6 +26,15 @@ define('GIYON_SHIPPING_CLASS_VOLUME_LIMIT', [
     'Box 160' => 122400,
     'Box 170' => 153600
 ]);
+define('GIYON_BOXC', [
+    'BOX 60' => 280,
+    'BOX 80' => 330,
+    'BOX 100' => 440,
+    'BOX 120' => 720,
+    'BOX 140' => 720,
+    'BOX 160' => 720,
+    'BOX 170' => 720
+]);
 define('GIYON_CSV_ONGKIR', plugin_dir_path(__FILE__) . 'giyon-woo-shipping.csv');
 define('GIYON_DEBUG_MODE', true);
 
@@ -182,6 +191,18 @@ add_action('woocommerce_shipping_init', function () {
                         break;
                     case 'Box':
                         $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
+                        if (giyon_products_contains_shipping_class($giyon_cart['products'], 'LPPF')) {
+                            $giyon_cart['shipping_cost'] -= 600;
+                        } else if (giyon_products_contains_shipping_class($giyon_cart['products'], 'LPLF')) {
+                            $giyon_cart['shipping_cost'] -= 430;
+                        }
+
+                        if (1 == giyon_boxc_status()) {
+                            if (giyon_products_contains_shipping_class($giyon_cart['products'], 'BOXC')) {
+                                $boxc = GIYON_BOXC;
+                                $giyon_cart['shipping_cost'] += $boxc[$giyon_cart['shipping_class_by_volume']];
+                            }
+                        }
                         break;
                 }
 
@@ -253,7 +274,7 @@ function giyon_product_id_to_shipping_class($product_id)
 function giyon_products_to_shipping_class($products)
 {
     $shipping_classes = giyon_products_to_shipping_classes($products);
-    if (in_array('BOX', $shipping_classes)) return 'Box';
+    if (0 < count(array_intersect(['BOX', 'BOXC'], $shipping_classes))) return 'Box';
     else if (0 < count(array_intersect(['LPP', 'LPPF'], $shipping_classes))) return 'Letter Pack Plus';
     else if (0 < count(array_intersect(['LPL', 'LPLF'], $shipping_classes))) return 'Letter Pack Light';
     else return 'Smart Letter';
