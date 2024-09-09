@@ -50,7 +50,6 @@ add_action('woocommerce_shipping_init', function () {
                 $this->init();
             }
 
-
             public function init()
             {
                 $this->init_form_fields();
@@ -113,13 +112,15 @@ add_action('woocommerce_shipping_init', function () {
                 ];
 
                 $giyon_cart['shipping_class_by_products'] = giyon_products_to_shipping_class($giyon_cart['products']);
-                $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_products'];
-                if ('Box' == $giyon_cart['shipping_class_to_show']) $giyon_cart['shipping_class_to_show'] = 'Yu Pakku';
 
                 foreach ($giyon_cart['products'] as $gprod) $giyon_cart['volume'] += $gprod['quantity'] * $gprod['volume'];
                 $giyon_cart['shipping_class_by_volume'] = giyon_volume_to_shipping_class($giyon_cart['volume']);
                 $limits = GIYON_SHIPPING_CLASS_VOLUME_LIMIT;
                 if ('Box' != $giyon_cart['shipping_class_by_products']) $giyon_cart['is_over_dimension'] = $giyon_cart['volume'] > $limits[$giyon_cart['shipping_class_by_products']];
+
+                $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_volume'];
+                // - Khusus untuk semua packaging BOX di front end dengan nama "Yu Pakku"
+                if (0 === strpos($giyon_cart['shipping_class_to_show'], 'Box')) $giyon_cart['shipping_class_to_show'] = 'Yu Pakku';
 
                 // base rule
                 $giyon_cart['shipping_cost_by_volume_shipping_class'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_volume']);
@@ -180,6 +181,7 @@ add_action('woocommerce_shipping_init', function () {
                     echo json_encode($giyon_cart, JSON_PRETTY_PRINT) . '<br>';
                 }
 
+                // - Nama packaging muncul di front end di samping nominal ongkir (di keranjang maupun checkout)
                 $this->title = $giyon_cart['shipping_class_to_show'];
                 $this->add_rate(array(
                     'id'    => $this->id,
@@ -305,3 +307,12 @@ function giyon_csv_to_cost($prefecture, $shipping_class_by_volume)
     $cost = 'Free' == $cost ? 0 : $cost;
     return (float)$cost;
 }
+
+add_action('wp_footer', function () {
+    global $wp;
+    if (is_checkout() && empty($wp->query_vars['order-pay']) && ! isset($wp->query_vars['order-received'])) {
+        wp_register_script('giyon-woo-shipping', plugin_dir_url(__FILE__) . 'giyon-woo-shipping.js', array('jquery'));
+        wp_enqueue_script('giyon-woo-shipping');
+        wp_localize_script('giyon-woo-shipping', 'giyon_woo_shipping', []);
+    }
+});
