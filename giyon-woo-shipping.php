@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name: Giyon Woo Shipping
- * Plugin URI: https://github.com/susantohenri/
+ * Plugin URI: https://github.com/susantohenri/giyon-woo-shipping
  * Description: Custom WooCommerce Shipping Plugin for Giyon.
  * Version: 1.0.0
  * Author: Henrisusanto
@@ -26,8 +26,18 @@ define('GIYON_SHIPPING_CLASS_VOLUME_LIMIT', [
     'Box 160' => 122400,
     'Box 170' => 153600
 ]);
-define('GIYON_CSV_ONGKIR', plugin_dir_path(__FILE__) . 'ongkir.csv');
+define('GIYON_CSV_ONGKIR', plugin_dir_path(__FILE__) . 'giyon-woo-shipping.csv');
 define('GIYON_DEBUG_MODE', true);
+
+add_action('admin_menu', function () {
+    $page_title = 'Giyon Config';
+    $menu_title = 'Giyon Config';
+    $capability = 'administrator';
+    $menu_slug = 'giyon-config';
+    add_menu_page($page_title, $menu_title, $capability, $menu_slug, function () {
+        include_once(plugin_dir_path(__FILE__) . 'giyon-woo-shipping-admin.php');
+    });
+});
 
 add_action('woocommerce_shipping_init', function () {
     if (! class_exists('Giyon_Shipping_Method')) {
@@ -115,7 +125,7 @@ add_action('woocommerce_shipping_init', function () {
 
                 foreach ($giyon_cart['products'] as $gprod) $giyon_cart['volume'] += $gprod['quantity'] * $gprod['volume'];
                 $giyon_cart['shipping_class_by_volume'] = giyon_volume_to_shipping_class($giyon_cart['volume']);
-                $limits = GIYON_SHIPPING_CLASS_VOLUME_LIMIT;
+                $limits = giyon_config_to_limit();
                 if ('Box' != $giyon_cart['shipping_class_by_products']) $giyon_cart['is_over_dimension'] = $giyon_cart['volume'] > $limits[$giyon_cart['shipping_class_by_products']];
 
                 $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_volume'];
@@ -280,7 +290,7 @@ function giyon_product_id_to_volume($product_id)
 function giyon_volume_to_shipping_class($volume)
 {
     $shipping_class = '';
-    $limits = array_reverse(GIYON_SHIPPING_CLASS_VOLUME_LIMIT);
+    $limits = array_reverse(giyon_config_to_limit());
     foreach ($limits as $class => $value) {
         if ($volume <= $value) $shipping_class = $class;
     }
@@ -291,7 +301,10 @@ function giyon_read_csv()
 {
     $csv = [];
     $file = fopen(GIYON_CSV_ONGKIR, 'r');
-    while (!feof($file)) $csv[] = fgetcsv($file);
+    while (!feof($file)) {
+        $line = fgetcsv($file);
+        if (!!$line) $csv[] = $line;
+    }
     fclose($file);
     return $csv;
 }
@@ -306,6 +319,40 @@ function giyon_csv_to_cost($prefecture, $shipping_class_by_volume)
     $cost = $row[$col_num];
     $cost = 'Free' == $cost ? 0 : $cost;
     return (float)$cost;
+}
+
+function giyon_boxc_status()
+{
+    return get_option('giyon_boxc_enable', 0);
+}
+
+function giyon_ongkir_cod()
+{
+    return get_option('giyon_ongkir_cod', 500);
+}
+
+function giyon_volume_smart_letter()
+{
+    return get_option('giyon_volume_smart_letter', 400);
+}
+
+function giyon_volume_letter_pack_light()
+{
+    return get_option('giyon_volume_letter_pack_light', 800);
+}
+
+function giyon_volume_letter_pack_plus()
+{
+    return get_option('giyon_volume_letter_pack_plus', 1200);
+}
+
+function giyon_config_to_limit()
+{
+    $limit = GIYON_SHIPPING_CLASS_VOLUME_LIMIT;
+    $limit['giyon_volume_smart_letter'] = giyon_volume_smart_letter();
+    $limit['giyon_volume_letter_pack_light'] = giyon_volume_letter_pack_light();
+    $limit['giyon_volume_letter_pack_plus'] = giyon_volume_letter_pack_plus();
+    return $limit;
 }
 
 add_action('wp_footer', function () {
