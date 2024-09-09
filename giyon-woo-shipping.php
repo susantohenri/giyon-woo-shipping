@@ -36,7 +36,6 @@ define('GIYON_BOXC', [
     'BOX 170' => 720
 ]);
 define('GIYON_CSV_ONGKIR', plugin_dir_path(__FILE__) . 'giyon-woo-shipping.csv');
-define('GIYON_DEBUG_MODE', true);
 
 add_action('admin_menu', function () {
     $page_title = 'Giyon Config';
@@ -167,10 +166,11 @@ add_action('woocommerce_shipping_init', function () {
                             $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
                             $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_volume'];
                         }
+                        $giyon_cart['shipping_class_to_show'] = 'Letter Pack Light';
                         break;
                     case 'Letter Pack Plus':
                         $has_lplf = giyon_products_contains_shipping_class($giyon_cart['products'], 'LPLF');
-                        $has_lppf = !giyon_products_contains_shipping_class($giyon_cart['products'], 'LPPF');
+                        $has_lppf = giyon_products_contains_shipping_class($giyon_cart['products'], 'LPPF');
                         $has_no_lppf = !$has_lppf;
                         if ($has_lplf && $has_no_lppf) {
                             // - Apabila ada kombinasi dengan "LPLF"  tanpa LPPF maka tidak dikenakan ongkir selisih dari Letter Pack Plus dikurangi Letter Pack Light (600 - 430 = 170)
@@ -188,6 +188,7 @@ add_action('woocommerce_shipping_init', function () {
                             // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), maka akan menggunakan packaging dan tarif packaging di atasnya (BOX) sesuai wilayah
                             $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
                         }
+                        $giyon_cart['shipping_class_to_show'] = 'Letter Pack Plus';
                         break;
                     case 'Box':
                         $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
@@ -224,7 +225,7 @@ add_action('woocommerce_shipping_init', function () {
     }
 });
 
-if (GIYON_DEBUG_MODE) {
+if (giyon_debug_status()) {
     add_action('wp_footer', function () {
         echo '<form method="POST"><button name="giyon_debug">giyon debug</button></form>';
     });
@@ -384,3 +385,8 @@ add_action('wp_footer', function () {
         wp_localize_script('giyon-woo-shipping', 'giyon_woo_shipping', []);
     }
 });
+
+function giyon_debug_status()
+{
+    return get_option('giyon_debug_enable', 0);
+}

@@ -1,5 +1,8 @@
 <?php
 
+if (isset($_POST['giyon_debug_enable'])) update_option('giyon_debug_enable', $_POST['giyon_debug_enable']);
+$giyon_debug_enable = giyon_debug_status();
+
 if (isset($_FILES['giyon-woo-shipping-csv'])) {
     move_uploaded_file($_FILES['giyon-woo-shipping-csv']['tmp_name'], plugin_dir_path(__FILE__) . 'giyon-woo-shipping.csv');
 }
@@ -30,6 +33,13 @@ $giyon_volume_letter_pack_plus = giyon_volume_letter_pack_plus();
     <div class="row">
         <div class="col-12">
             <form method="POST" enctype="multipart/form-data">
+                <div class="mb-5">
+                    <label class="form-label">debug Status</label>
+                    <select name="giyon_debug_enable" class="form-control">
+                        <option value="1" <?= 1 == $giyon_debug_enable ? 'selected' : '' ?>>Enabled</option>
+                        <option value="0" <?= 0 == $giyon_debug_enable ? 'selected' : '' ?>>Disabled</option>
+                    </select>
+                </div>
                 <div class="mb-5">
                     <label class="form-label">Upload Ongkir CSV</label>
                     <input type="file" name="giyon-woo-shipping-csv" class="form-control" style="width: auto;">
