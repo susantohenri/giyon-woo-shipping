@@ -34,7 +34,7 @@ $giyon_volume_letter_pack_plus = giyon_volume_letter_pack_plus();
         <div class="col-12">
             <form method="POST" enctype="multipart/form-data">
                 <div class="mb-5">
-                    <label class="form-label">debug Status</label>
+                    <label class="form-label">Debug Status</label>
                     <select name="giyon_debug_enable" class="form-control">
                         <option value="1" <?= 1 == $giyon_debug_enable ? 'selected' : '' ?>>Enabled</option>
                         <option value="0" <?= 0 == $giyon_debug_enable ? 'selected' : '' ?>>Disabled</option>

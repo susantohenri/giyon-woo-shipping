@@ -371,9 +371,9 @@ function giyon_volume_letter_pack_plus()
 function giyon_config_to_limit()
 {
     $limit = GIYON_SHIPPING_CLASS_VOLUME_LIMIT;
-    $limit['giyon_volume_smart_letter'] = giyon_volume_smart_letter();
-    $limit['giyon_volume_letter_pack_light'] = giyon_volume_letter_pack_light();
-    $limit['giyon_volume_letter_pack_plus'] = giyon_volume_letter_pack_plus();
+    $limit['Smart Letter'] = giyon_volume_smart_letter();
+    $limit['Letter Pack Light'] = giyon_volume_letter_pack_light();
+    $limit['Letter Pack Plus'] = giyon_volume_letter_pack_plus();
     return $limit;
 }
 
