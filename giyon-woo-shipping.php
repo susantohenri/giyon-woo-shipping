@@ -155,6 +155,7 @@ add_action('woocommerce_shipping_init', function () {
                         break;
                     case 'Letter Pack Light':
                         $has_lplf = giyon_products_contains_shipping_class($giyon_cart['products'], 'LPLF');
+                        $giyon_cart['shipping_class_to_show'] = 'Letter Pack Light';
                         if ($giyon_cart['is_over_dimension'] && $has_lplf) {
                             // - Apabila volume melebihi volume Letter Pack Light (800 cm³), dengan kombinasi shipping class LPLF, maka akan menggunakan packaging di atasnya dengan tarif selisih antara ongkir packaging yang dipakai (tarif yg dipakai dikurangi 430 yen).
                             $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - $giyon_cart['shipping_cost_by_products_shipping_class'];
@@ -166,29 +167,35 @@ add_action('woocommerce_shipping_init', function () {
                             $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
                             $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_volume'];
                         }
-                        $giyon_cart['shipping_class_to_show'] = 'Letter Pack Light';
                         break;
                     case 'Letter Pack Plus':
                         $has_lplf = giyon_products_contains_shipping_class($giyon_cart['products'], 'LPLF');
                         $has_lppf = giyon_products_contains_shipping_class($giyon_cart['products'], 'LPPF');
                         $has_no_lppf = !$has_lppf;
-                        if ($has_lplf && $has_no_lppf) {
-                            // - Apabila ada kombinasi dengan "LPLF"  tanpa LPPF maka tidak dikenakan ongkir selisih dari Letter Pack Plus dikurangi Letter Pack Light (600 - 430 = 170)
-                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - $giyon_cart['shipping_cost_by_products_shipping_class'];
-                        } else if ($has_lppf) {
-                            // - Apabila ada kombinasi dengan "LPPF" maka tidak dikenakan ongkir (free ongkir).
-                            $giyon_cart['shipping_cost'] = 0;
-                        } else if ($giyon_cart['is_over_dimension'] && $has_lplf && $has_no_lppf) {
-                            // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), dengan kombinasi shipping class "LPLF" tanpa "LPPF", maka akan menggunakan packaging BOX dengan tarif selisih antara ongkir packaging BOX dikurangi 430 yen.
-                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - giyon_csv_to_cost($giyon_cart['prefecture'], 'Letter Pack Light');
-                        } else if ($giyon_cart['is_over_dimension'] && $has_lppf) {
-                            // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), dengan kombinasi shipping class "LPPF", maka akan menggunakan packaging BOX dengan tarif selisih antara ongkir packaging BOX dikurangi 600 yen.
-                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - $giyon_cart['shipping_cost_by_products_shipping_class'];
-                        } else if ($giyon_cart['is_over_dimension']) {
-                            // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), maka akan menggunakan packaging dan tarif packaging di atasnya (BOX) sesuai wilayah
-                            $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
+
+                        if ($giyon_cart['is_over_dimension']) {
+                            if ($has_lplf && $has_no_lppf) {
+                                // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), dengan kombinasi shipping class "LPLF" tanpa "LPPF", maka akan menggunakan packaging BOX dengan tarif selisih antara ongkir packaging BOX dikurangi 430 yen.
+                                $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - giyon_csv_to_cost($giyon_cart['prefecture'], 'Letter Pack Light');
+                            } else if ($has_lppf) {
+                                // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), dengan kombinasi shipping class "LPPF", maka akan menggunakan packaging BOX dengan tarif selisih antara ongkir packaging BOX dikurangi 600 yen.
+                                $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - $giyon_cart['shipping_cost_by_products_shipping_class'];
+                            } else {
+                                // - Apabila volume melebihi volume Letter Pack Plus (1200 cm³), maka akan menggunakan packaging dan tarif packaging di atasnya (BOX) sesuai wilayah
+                                $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
+                            }
+                            $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_volume'];
+                        } else {
+                            if ($has_lplf && $has_no_lppf) {
+                                // - Apabila ada kombinasi dengan "LPLF"  tanpa LPPF maka tidak dikenakan ongkir selisih dari Letter Pack Plus dikurangi Letter Pack Light (600 - 430 = 170)
+                                $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'] - $giyon_cart['shipping_cost_by_products_shipping_class'];
+                            } else if ($has_lppf) {
+                                // - Apabila ada kombinasi dengan "LPPF" maka tidak dikenakan ongkir (free ongkir).
+                                $giyon_cart['shipping_cost'] = 0;
+                            }
+                            $giyon_cart['shipping_class_to_show'] = 'Letter Pack Plus';
                         }
-                        $giyon_cart['shipping_class_to_show'] = 'Letter Pack Plus';
+
                         break;
                     case 'Box':
                         $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
@@ -205,6 +212,17 @@ add_action('woocommerce_shipping_init', function () {
                             }
                         }
                         break;
+                }
+
+                // Kalau di cart HANYA ada shipping class yang free (LPLF -DAN ATAU- LPPF) maka order berapapun tetep free
+                if (0 != $giyon_cart['shipping_cost']) {
+                    $collect_shipping_classes = array_map(function ($product) {
+                        return $product['shipping_class'];
+                    }, $giyon_cart['products']);
+                    $non_free = array_filter($collect_shipping_classes, function ($ship_cl) {
+                        return !in_array($ship_cl, ['LPLF', 'LPPF']);
+                    });
+                    if (0 == count($non_free)) $giyon_cart['shipping_cost'] = 0;
                 }
 
                 // debugging
