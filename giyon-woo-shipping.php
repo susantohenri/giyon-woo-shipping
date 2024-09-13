@@ -117,6 +117,7 @@ add_action('woocommerce_shipping_init', function () {
             public function calculate_shipping($package = array())
             {
                 $giyon_cart = [
+                    'package' => $package,
                     'prefecture' => giyon_cart_to_prefecture($package),
                     'products' => giyon_cart_to_products($package),
                     'volume' => 0,
@@ -134,7 +135,6 @@ add_action('woocommerce_shipping_init', function () {
 
                 foreach ($giyon_cart['products'] as $gprod) $giyon_cart['volume'] += $gprod['quantity'] * $gprod['volume'];
                 $giyon_cart['shipping_class_by_volume'] = giyon_volume_to_shipping_class($giyon_cart['volume']);
-                $limits = giyon_config_to_limit();
 
                 // under or over dimension
                 $giyon_cart['is_under_dimension'] = giyon_shipping_class_to_index($giyon_cart['shipping_class_by_volume']) < giyon_shipping_class_to_index($giyon_cart['shipping_class_by_products']);
@@ -148,8 +148,6 @@ add_action('woocommerce_shipping_init', function () {
                 $giyon_cart['shipping_cost_by_volume_shipping_class'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_volume']);
                 $giyon_cart['shipping_cost_by_products_shipping_class'] = giyon_csv_to_cost($giyon_cart['prefecture'], $giyon_cart['shipping_class_by_products']);
                 $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_products_shipping_class'];
-
-
 
                 // special rules
                 switch ($giyon_cart['shipping_class_by_products']) {
@@ -239,6 +237,9 @@ add_action('woocommerce_shipping_init', function () {
                     if (0 == count($non_free)) $giyon_cart['shipping_cost'] = 0;
                 }
 
+                // - Belanja di atas 20.000 yen Free Ongkir
+                if (20000 < $package['contents_cost']) $giyon_cart['shipping_cost'] = 0;
+
                 // debugging
                 if (isset($_POST['giyon_debug'])) {
                     unset($_POST['giyon_debug']);
@@ -246,6 +247,7 @@ add_action('woocommerce_shipping_init', function () {
                 }
 
                 // - Nama packaging muncul di front end di samping nominal ongkir (di keranjang maupun checkout)
+                $giyon_cart['shipping_class_to_show'] = 'Box' == $giyon_cart['shipping_class_to_show'] ? 'Box 60' : $giyon_cart['shipping_class_to_show'];
                 $this->title = $giyon_cart['shipping_class_to_show'];
                 $this->add_rate(array(
                     'id'    => $this->id,
