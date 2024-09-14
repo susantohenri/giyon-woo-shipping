@@ -117,7 +117,6 @@ add_action('woocommerce_shipping_init', function () {
             public function calculate_shipping($package = array())
             {
                 $giyon_cart = [
-                    'package' => $package,
                     'prefecture' => giyon_cart_to_prefecture($package),
                     'products' => giyon_cart_to_products($package),
                     'volume' => 0,
@@ -196,7 +195,7 @@ add_action('woocommerce_shipping_init', function () {
                         } else {
                             if ($has_lplf && $has_no_lppf) {
                                 // - Apabila ada kombinasi dengan "LPLF"  tanpa LPPF maka tidak dikenakan ongkir selisih dari Letter Pack Plus dikurangi Letter Pack Light (600 - 430 = 170)
-                                $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_products_shipping_class'] - $giyon_cart['shipping_cost_by_volume_shipping_class'];
+                                $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_products_shipping_class'] - giyon_csv_to_cost($giyon_cart['prefecture'], 'Letter Pack Light');
                             } else if ($has_lppf) {
                                 // - Apabila ada kombinasi dengan "LPPF" maka tidak dikenakan ongkir (free ongkir).
                                 $giyon_cart['shipping_cost'] = 0;
