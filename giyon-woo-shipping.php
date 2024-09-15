@@ -27,13 +27,13 @@ define('GIYON_SHIPPING_CLASS_VOLUME_LIMIT', [
     'Box 170' => 153600
 ]);
 define('GIYON_BOXC', [
-    'BOX 60' => 280,
-    'BOX 80' => 330,
-    'BOX 100' => 440,
-    'BOX 120' => 720,
-    'BOX 140' => 720,
-    'BOX 160' => 720,
-    'BOX 170' => 720
+    'Box 60' => 280,
+    'Box 80' => 330,
+    'Box 100' => 440,
+    'Box 120' => 720,
+    'Box 140' => 720,
+    'Box 160' => 720,
+    'Box 170' => 720
 ]);
 define('GIYON_CSV_ONGKIR', plugin_dir_path(__FILE__) . 'giyon-woo-shipping.csv');
 
@@ -204,16 +204,17 @@ add_action('woocommerce_shipping_init', function () {
 
                         break;
                     case 'Box':
+                        $giyon_cart['shipping_class_to_show'] = $giyon_cart['shipping_class_by_volume'];
                         if ($giyon_cart['is_under_dimension']) {
                             $giyon_cart['shipping_class_to_show'] = 'Box 60';
                         } else {
                             $giyon_cart['shipping_cost'] = $giyon_cart['shipping_cost_by_volume_shipping_class'];
+                        }
 
-                            if (giyon_products_contains_shipping_class($giyon_cart['products'], 'LPPF')) {
-                                $giyon_cart['shipping_cost'] -= 600;
-                            } else if (giyon_products_contains_shipping_class($giyon_cart['products'], 'LPLF')) {
-                                $giyon_cart['shipping_cost'] -= 430;
-                            }
+                        if (giyon_products_contains_shipping_class($giyon_cart['products'], 'LPPF')) {
+                            $giyon_cart['shipping_cost'] -= 600;
+                        } else if (giyon_products_contains_shipping_class($giyon_cart['products'], 'LPLF')) {
+                            $giyon_cart['shipping_cost'] -= 430;
                         }
 
                         if (1 == giyon_boxc_status()) {
@@ -246,7 +247,6 @@ add_action('woocommerce_shipping_init', function () {
                 }
 
                 // - Nama packaging muncul di front end di samping nominal ongkir (di keranjang maupun checkout)
-                $giyon_cart['shipping_class_to_show'] = 'Box' == $giyon_cart['shipping_class_to_show'] ? 'Box 60' : $giyon_cart['shipping_class_to_show'];
                 $this->title = $giyon_cart['shipping_class_to_show'];
                 $this->add_rate(array(
                     'id'    => $this->id,

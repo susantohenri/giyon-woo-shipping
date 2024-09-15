@@ -1,8 +1,8 @@
 <fieldset class="wc-block-checkout__shipping-option wp-block-woocommerce-checkout-arrival-methods-block wc-block-components-checkout-step" id="shipping-option">
-    <legend class="screen-reader-text">Arrival options
+    <legend class="screen-reader-text">Jam Kedatangan
     </legend>
     <div class="wc-block-components-checkout-step__heading">
-        <h2 class="wc-block-components-title wc-block-components-checkout-step__title" aria-hidden="true">Arrival options
+        <h2 class="wc-block-components-title wc-block-components-checkout-step__title" aria-hidden="true">Jam Kedatangan
         </h2>
     </div>
     <div class="wc-block-components-checkout-step__container">
