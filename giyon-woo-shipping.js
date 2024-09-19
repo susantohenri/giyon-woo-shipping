@@ -25,10 +25,11 @@ function giyon_is_shipping_form_exists() {
 }
 
 function giyon_is_box() {
-    return 0 == jQuery(`#radio-control-0-giyon_shipping__label`).html().indexOf(`Box`)
+    return 0 == jQuery(giyon_woo_shipping.shipping_class_selector).html().indexOf(`Box`)
 }
 
 function giyon_is_selected() {
+    return true
     const radio = jQuery(`[value="giyon_shipping"]`)
     if (1 > radio.length) return false
     return radio.is(`:checked`)

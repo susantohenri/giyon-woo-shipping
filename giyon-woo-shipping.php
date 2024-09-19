@@ -220,7 +220,9 @@ add_action('woocommerce_shipping_init', function () {
                         if (1 == giyon_boxc_status()) {
                             if (giyon_products_contains_shipping_class($giyon_cart['products'], 'BOXC')) {
                                 $boxc = GIYON_BOXC;
-                                $giyon_cart['shipping_cost'] += $boxc[$giyon_cart['shipping_class_by_volume']];
+                                $giyon_cart['shipping_cost'] += isset($boxc[$giyon_cart['shipping_class_by_volume']]) ?
+                                    $boxc[$giyon_cart['shipping_class_by_volume']] :
+                                    reset($boxc);
                             }
                         }
                         break;
@@ -429,7 +431,8 @@ add_action('wp_footer', function () {
         wp_localize_script('giyon-woo-shipping', 'giyon_woo_shipping', [
             'arrival_form' => plugin_dir_url(__FILE__) . 'giyon-woo-shipping-arrival.php',
             'arrival_form_selector' => 'fieldset.wp-block-woocommerce-checkout-arrival-methods-block',
-            'shipping_form_selector' => 'fieldset.wp-block-woocommerce-checkout-shipping-methods-block',
+            'shipping_form_selector' => 'div.wd-table-wrapper.wd-manage-on',
+            'shipping_class_selector' => 'label[for="shipping_method_0_giyon_shipping"]',
             'order_id' => $order_id,
             'upload_arrival_hour' => site_url('wp-json/giyon-woo-shipping/v1/set-arrival-hour')
         ]);
