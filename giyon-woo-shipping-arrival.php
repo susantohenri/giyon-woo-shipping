@@ -1,4 +1,4 @@
-<fieldset class="wd-table-wrapper wc-block-checkout__shipping-option wp-block-woocommerce-checkout-arrival-methods-block wc-block-components-checkout-step" id="shipping-option">
+<div class="wd-table-wrapper wc-block-checkout__shipping-option wp-block-woocommerce-checkout-arrival-methods-block wc-block-components-checkout-step" id="shipping-option">
     <table class="shop_table">
         <thead>
             <tr>
@@ -20,4 +20,4 @@
             </tr>
         </tbody>
     </table>
-</fieldset>
+</div>

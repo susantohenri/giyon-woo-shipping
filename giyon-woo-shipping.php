@@ -430,7 +430,7 @@ add_action('wp_footer', function () {
         wp_enqueue_script('giyon-woo-shipping');
         wp_localize_script('giyon-woo-shipping', 'giyon_woo_shipping', [
             'arrival_form' => plugin_dir_url(__FILE__) . 'giyon-woo-shipping-arrival.php',
-            'arrival_form_selector' => 'fieldset.wp-block-woocommerce-checkout-arrival-methods-block',
+            'arrival_form_selector' => 'div.wp-block-woocommerce-checkout-arrival-methods-block',
             'shipping_form_selector' => 'div.wd-table-wrapper.wd-manage-on',
             'shipping_class_selector' => 'label[for="shipping_method_0_giyon_shipping"]',
             'order_id' => $order_id,
@@ -445,7 +445,7 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
         'callback' => function () {
             $order = wc_get_order($_POST['order_id']);
-            $note = __('selected arrival hour: ' . $_POST['arrival_hour']);
+            $note = __('Jam kedatangan: ' . $_POST['arrival_hour']);
             $note .= ' ' . $order->get_customer_note();
             $order->set_customer_note($note);
             $order->save();
