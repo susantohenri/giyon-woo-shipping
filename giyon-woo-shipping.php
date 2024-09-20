@@ -446,7 +446,9 @@ add_action('rest_api_init', function () {
         'callback' => function () {
             $order = wc_get_order($_POST['order_id']);
             $note = __('selected arrival hour: ' . $_POST['arrival_hour']);
-            $order->add_order_note($note);
+            $note .= ' ' . $order->get_customer_note();
+            $order->set_customer_note($note);
+            $order->save();
             return 200;
         }
     ));
