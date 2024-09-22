@@ -425,7 +425,15 @@ add_action('wp_footer', function () {
     $order_id = explode('/', $current_url);
     $order_id = (int) end($order_id);
 
+    if (is_cart() || is_page('cart')) {
+        wp_register_script('giyon-woo-shipping-free', plugin_dir_url(__FILE__) . 'giyon-woo-shipping-free.js', array('jquery'));
+        wp_enqueue_script('giyon-woo-shipping-free');
+    }
+
     if (is_checkout() && empty($wp->query_vars['order-pay'])) {
+        wp_register_script('giyon-woo-shipping-free', plugin_dir_url(__FILE__) . 'giyon-woo-shipping-free.js', array('jquery'));
+        wp_enqueue_script('giyon-woo-shipping-free');
+
         wp_register_script('giyon-woo-shipping', plugin_dir_url(__FILE__) . 'giyon-woo-shipping.js', array('jquery'));
         wp_enqueue_script('giyon-woo-shipping');
         wp_localize_script('giyon-woo-shipping', 'giyon_woo_shipping', [
