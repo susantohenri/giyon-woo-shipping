@@ -434,7 +434,7 @@ add_action('wp_footer', function () {
         wp_register_script('giyon-woo-shipping-free', plugin_dir_url(__FILE__) . 'giyon-woo-shipping-free.js', array('jquery'));
         wp_enqueue_script('giyon-woo-shipping-free');
 
-        wp_register_script('giyon-woo-shipping', plugin_dir_url(__FILE__) . 'giyon-woo-shipping.js', array('jquery'));
+        wp_register_script('giyon-woo-shipping', plugin_dir_url(__FILE__) . 'giyon-woo-shipping.js', ['jquery'], '1.0.2');
         wp_enqueue_script('giyon-woo-shipping');
         wp_localize_script('giyon-woo-shipping', 'giyon_woo_shipping', [
             'arrival_form' => plugin_dir_url(__FILE__) . 'giyon-woo-shipping-arrival.php',

@@ -1,3 +1,7 @@
+setTimeout(() => {
+    jQuery(`#payment`).addClass(`wd-table-wrapper`)
+}, 1000)
+
 if (0 == giyon_woo_shipping.order_id) {
     giyon_clear_local_storage()
     giyon_monitor_shipping_class()
