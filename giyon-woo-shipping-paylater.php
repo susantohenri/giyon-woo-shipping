@@ -16,7 +16,7 @@
                             </span>
                         </label>
                     <?php endforeach ?>
-                    <input type="text" style="color: black; text-align: right; display: none;">
+                    <input type="text" style="color: black; text-align: right; display: none;" readonly="readonly">
                 </td>
             </tr>
         </tbody>
