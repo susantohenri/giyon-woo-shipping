@@ -439,10 +439,13 @@ add_action('wp_footer', function () {
         wp_localize_script('giyon-woo-shipping', 'giyon_woo_shipping', [
             'arrival_form' => plugin_dir_url(__FILE__) . 'giyon-woo-shipping-arrival.php',
             'arrival_form_selector' => 'div.wp-block-woocommerce-checkout-arrival-methods-block',
+            'paylater_form' => plugin_dir_url(__FILE__) . 'giyon-woo-shipping-paylater.php',
+            'paylater_form_selector' => 'div.wp-block-woocommerce-checkout-paylater-methods-block',
             'shipping_form_selector' => 'div.wd-table-wrapper.wd-manage-on',
             'shipping_class_selector' => 'label[for="shipping_method_0_giyon_shipping"]',
             'order_id' => $order_id,
-            'upload_arrival_hour' => site_url('wp-json/giyon-woo-shipping/v1/set-arrival-hour')
+            'upload_arrival_hour' => site_url('wp-json/giyon-woo-shipping/v1/set-arrival-hour'),
+            'upload_paylater_time' => site_url('wp-json/giyon-woo-shipping/v1/set-paylater-time')
         ]);
     }
 });
@@ -454,6 +457,18 @@ add_action('rest_api_init', function () {
         'callback' => function () {
             $order = wc_get_order($_POST['order_id']);
             $note = __('Jam kedatangan: ' . $_POST['arrival_hour']);
+            $note .= ' ' . $order->get_customer_note();
+            $order->set_customer_note($note);
+            $order->save();
+            return 200;
+        }
+    ));
+    register_rest_route('giyon-woo-shipping/v1', '/set-paylater-time', array(
+        'methods' => 'POST',
+        'permission_callback' => '__return_true',
+        'callback' => function () {
+            $order = wc_get_order($_POST['order_id']);
+            $note = __('Waktu Pembayaran: ' . $_POST['paylater_time']);
             $note .= ' ' . $order->get_customer_note();
             $order->set_customer_note($note);
             $order->save();
