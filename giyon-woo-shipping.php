@@ -444,33 +444,24 @@ add_action('wp_footer', function () {
             'shipping_form_selector' => 'div.wd-table-wrapper.wd-manage-on',
             'shipping_class_selector' => 'label[for="shipping_method_0_giyon_shipping"]',
             'order_id' => $order_id,
-            'upload_arrival_hour' => site_url('wp-json/giyon-woo-shipping/v1/set-arrival-hour'),
-            'upload_paylater_time' => site_url('wp-json/giyon-woo-shipping/v1/set-paylater-time')
+            'upload_local_storage' => site_url('wp-json/giyon-woo-shipping/v1/upload-local-storage'),
         ]);
     }
 });
 
 add_action('rest_api_init', function () {
-    register_rest_route('giyon-woo-shipping/v1', '/set-arrival-hour', array(
+    register_rest_route('giyon-woo-shipping/v1', '/upload-local-storage', array(
         'methods' => 'POST',
         'permission_callback' => '__return_true',
         'callback' => function () {
             $order = wc_get_order($_POST['order_id']);
-            $note = __('Jam kedatangan: ' . $_POST['arrival_hour']);
-            $note .= ' ' . $order->get_customer_note();
-            $order->set_customer_note($note);
-            $order->save();
-            return 200;
-        }
-    ));
-    register_rest_route('giyon-woo-shipping/v1', '/set-paylater-time', array(
-        'methods' => 'POST',
-        'permission_callback' => '__return_true',
-        'callback' => function () {
-            $order = wc_get_order($_POST['order_id']);
-            $note = __('Waktu Pembayaran: ' . $_POST['paylater_time']);
-            $note .= ' ' . $order->get_customer_note();
-            $order->set_customer_note($note);
+            $notes = $order->get_customer_note();
+            $notes = '' == $notes ? [] : [$notes];
+
+            if (isset($_POST['paylater_time'])) $notes[] = __('Waktu Pembayaran: ' . $_POST['paylater_time']);
+            if (isset($_POST['arrival_hour'])) $notes[] = __('Jam kedatangan: ' . $_POST['arrival_hour']);
+
+            $order->set_customer_note(implode(', ', $notes));
             $order->save();
             return 200;
         }

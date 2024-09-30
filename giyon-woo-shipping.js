@@ -4,8 +4,19 @@ if (0 == giyon_woo_shipping.order_id) {
     giyon_create_paylater_form()
     giyon_monitor_submit_button_require_paylater()
 } else {
-    giyon_submit_arrival_hour()
-    giyon_submit_paylater_time()
+    let post_data = {
+        order_id: giyon_woo_shipping.order_id
+    }
+
+    const arrival_hour = localStorage.getItem(`giyon-arrival-hour`)
+    if (`null` != arrival_hour) post_data.arrival_hour = arrival_hour
+
+    const paylater_time = localStorage.getItem(`giyon-paylater-time`)
+    if (`null` != paylater_time) post_data.paylater_time = paylater_time
+
+    jQuery.post(giyon_woo_shipping.upload_local_storage, post_data, () => {
+        giyon_clear_local_storage()
+    })
 }
 
 function giyon_monitor_shipping_class() {
@@ -89,24 +100,4 @@ function giyon_monitor_submit_button_require_paylater() {
 function giyon_clear_local_storage() {
     localStorage.setItem(`giyon-arrival-hour`, null)
     localStorage.setItem(`giyon-paylater-time`, null)
-}
-
-function giyon_submit_arrival_hour() {
-    const stored = localStorage.getItem(`giyon-arrival-hour`)
-    if (`null` != stored) jQuery.post(giyon_woo_shipping.upload_arrival_hour, {
-        order_id: giyon_woo_shipping.order_id,
-        arrival_hour: stored
-    }, () => {
-        localStorage.setItem(`giyon-arrival-hour`, null)
-    })
-}
-
-function giyon_submit_paylater_time() {
-    const stored = localStorage.getItem(`giyon-paylater-time`)
-    if (`null` != stored) jQuery.post(giyon_woo_shipping.upload_paylater_time, {
-        order_id: giyon_woo_shipping.order_id,
-        paylater_time: stored
-    }, () => {
-        localStorage.setItem(`giyon-paylater-time`, null)
-    })
 }
