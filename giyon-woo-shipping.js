@@ -31,7 +31,7 @@ function giyon_monitor_shipping_class() {
         } else giyon_remove_arrival_form()
     } else giyon_remove_arrival_form()
 
-    setTimeout(giyon_monitor_shipping_class, 1000)
+    setTimeout(giyon_monitor_shipping_class, 100)
 }
 
 function giyon_is_shipping_form_exists() {
