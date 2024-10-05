@@ -278,7 +278,7 @@ function giyon_cart_to_products($package)
         return [
             'product_id' => $product_id,
             'quantity' => $content['quantity'],
-            'volume' => giyon_product_id_to_volume($product_id),
+            'volume' => giyon_product_id_to_volume($product_id, $content['variation_id']),
             'shipping_class' => giyon_product_id_to_shipping_class($product_id)
         ];
     }, $package['contents']));
@@ -329,18 +329,21 @@ function giyon_products_to_shipping_classes($products)
     }, $products);
 }
 
-function giyon_product_id_to_volume($product_id)
+function giyon_product_id_to_volume($product_id, $variation_id)
 {
     global $wpdb;
     $volume = 1;
-    foreach (
-        $wpdb->get_results("
+    $query = "
         SELECT meta_value
         FROM {$wpdb->prefix}postmeta
-        WHERE post_id = {$product_id}
+        WHERE post_id = %post_id
         AND meta_key IN ('_length', '_width', '_height')
-    ") as $dimension
-    ) $volume *= $dimension->meta_value;
+    ";
+    $dimensions = $wpdb->get_results(str_replace('%post_id', $product_id, $query));
+    if (0 == count($dimensions)) {
+        $dimensions = $wpdb->get_results(str_replace('%post_id', $variation_id, $query));
+    }
+    foreach ($dimensions as $dimension) $volume *= $dimension->meta_value;
     return $volume;
 }
 
