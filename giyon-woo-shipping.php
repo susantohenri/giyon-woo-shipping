@@ -275,11 +275,12 @@ function giyon_cart_to_products($package)
 {
     return array_values(array_map(function ($content) {
         $product_id = $content['product_id'];
-        $data_volume = giyon_product_id_to_volume($product_id, $content['variation_id']);
+        $varian_id = $content['variation_id'];
+        $data_volume = giyon_product_id_to_volume($product_id, $varian_id);
         $data_product = [
             'product_id' => $product_id,
             'quantity' => $content['quantity'],
-            'shipping_class' => giyon_product_id_to_shipping_class($product_id)
+            'shipping_class' => giyon_product_id_to_shipping_class($product_id, $varian_id)
         ];
         $data_product = array_merge($data_product, $data_volume);
         return $data_product;
@@ -294,19 +295,22 @@ function giyon_cart_to_prefecture($package)
     return $states[$state_code];
 }
 
-function giyon_product_id_to_shipping_class($product_id)
+function giyon_product_id_to_shipping_class($product_id, $varian_id)
 {
     global $wpdb;
-    return $wpdb->get_var("
+    $query = "
         SELECT
             {$wpdb->prefix}terms.name
         FROM {$wpdb->prefix}posts
         LEFT JOIN {$wpdb->prefix}term_relationships ON {$wpdb->prefix}posts.ID = {$wpdb->prefix}term_relationships.object_id
         LEFT JOIN {$wpdb->prefix}term_taxonomy ON {$wpdb->prefix}term_relationships.term_taxonomy_id = {$wpdb->prefix}term_taxonomy.term_taxonomy_id
         LEFT JOIN {$wpdb->prefix}terms ON {$wpdb->prefix}terms.term_id = {$wpdb->prefix}term_taxonomy.term_id
-        WHERE {$wpdb->prefix}posts.ID = {$product_id}
+        WHERE {$wpdb->prefix}posts.ID = %post_id
         AND {$wpdb->prefix}term_taxonomy.taxonomy = 'product_shipping_class'
-    ");
+    ";
+    $shipping_class = $wpdb->get_var(str_replace('%post_id', $product_id, $query));
+    if (!$shipping_class) $shipping_class = $wpdb->get_var(str_replace('%post_id', $varian_id, $query));
+    return $shipping_class;
 }
 
 function giyon_products_to_shipping_class($products)
