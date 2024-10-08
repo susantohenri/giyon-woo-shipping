@@ -340,7 +340,7 @@ function giyon_product_id_to_volume($product_id)
         WHERE post_id = {$product_id}
         AND meta_key IN ('_length', '_width', '_height')
     ") as $dimension
-    ) $volume *= $dimension->meta_value;
+    ) $volume *= (int) $dimension->meta_value;
     return $volume;
 }
 
