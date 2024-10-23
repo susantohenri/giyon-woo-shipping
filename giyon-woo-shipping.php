@@ -354,7 +354,7 @@ function giyon_product_id_to_volume($product_id, $variation_id)
     }
     foreach ($dimensions as $dimension) {
         $data_volume[$dimension->meta_key] = $dimension->meta_value;
-        $volume *= (int) $dimension->meta_value;
+        $volume *= (float) $dimension->meta_value;
     }
     $data_volume['volume'] = $volume;
     return $data_volume;
