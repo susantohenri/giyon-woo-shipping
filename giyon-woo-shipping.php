@@ -291,6 +291,7 @@ function giyon_cart_to_prefecture($package)
 {
     $country_code = 'JP';
     $state_code = $package['destination']['state'];
+    if ('' === $state_code) return '';
     $states = WC()->countries->get_states($country_code);
     return $states[$state_code];
 }
@@ -394,7 +395,9 @@ function giyon_csv_to_cost($prefecture, $shipping_class)
     $col_num = array_search($shipping_class, $rows[0]);
     $row = array_values(array_filter($rows, function ($cols) use ($prefecture) {
         return $cols[0] == $prefecture;
-    }))[0];
+    }));
+    if (!isset($row[0])) return 0;
+    else $row = $row[0];
     $cost = $row[$col_num];
     $cost = 'Free' == $cost ? 0 : $cost;
     return (float)$cost;
